@@ -120,6 +120,8 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
                                     WebSettings.LOAD_CACHE_ELSE_NETWORK
                                 }
                                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                                allowFileAccess = false
+                                allowContentAccess = true
                                 javaScriptCanOpenWindowsAutomatically = false
                                 setSupportMultipleWindows(false)
                             }
