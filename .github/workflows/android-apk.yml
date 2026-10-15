@@ -39,19 +39,20 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: Movie-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish Movie APK v1.1
-        if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Publish Movie APK v1.1')
+      - name: Publish APK to GitHub Releases
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1
-          name: Movie Android App v1.1
+          tag_name: build-${{ github.run_number }}
+          name: Movie Android APK build ${{ github.run_number }}
           body: |
-            Keeps Bollyflix navigation inside the Android app.
-            Adds selectable domain candidates, remembers the last selected domain, and provides a retry state for unavailable domains.
+            Automatically built Movie Android APK.
+            The app provides selectable domain candidates and retry handling.
             Domain availability and authenticity cannot be guaranteed by the app.
           files: app/build/outputs/apk/debug/app-debug.apk
           make_latest: true
+          fail_on_unmatched_files: true
