@@ -98,44 +98,22 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
                                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                                 allowFileAccess = false
                                 allowContentAccess = true
-                                javaScriptCanOpenWindowsAutomatically = false
-                                // Keep target=_blank navigation in this WebView instead of creating popups.
+                                javaScriptCanOpenWindowsAutomatically = true
+                                // Keep navigation inside this WebView; do not filter ad or site requests.
                                 setSupportMultipleWindows(false)
                             }
 
                             webChromeClient = WebChromeClient()
 
                             webViewClient = object : WebViewClient() {
-                                override fun shouldInterceptRequest(
-                                    view: WebView,
-                                    request: WebResourceRequest
-                                ): android.webkit.WebResourceResponse? {
-                                    val host = request.url.host?.lowercase() ?: return null
-                                    if (!isKnownAdHost(host)) return null
-                                    return android.webkit.WebResourceResponse(
-                                        "text/plain",
-                                        "utf-8",
-                                        204,
-                                        "No Content",
-                                        mapOf("Cache-Control" to "no-store"),
-                                        java.io.ByteArrayInputStream(ByteArray(0))
-                                    )
-                                }
-
                                 override fun shouldOverrideUrlLoading(
                                     view: WebView,
                                     request: WebResourceRequest
                                 ): Boolean {
-                                    val uri = request.url
-                                    val scheme = uri.scheme?.lowercase()
-                                    val host = uri.host?.lowercase()
-
-                                    // Start at bollyflix.vip, permit server redirects, and preserve
-                                    // deliberate user clicks to media/login hosts. Ad-network requests
-                                    // are filtered separately in shouldInterceptRequest.
-                                    if (scheme != "https" && scheme != "http") return true
-                                    if (request.isRedirect || request.hasGesture()) return false
-                                    return host != "bollyflix.vip" && host != "www.bollyflix.vip"
+                                    val scheme = request.url.scheme?.lowercase()
+                                    // Allow all regular web navigation so links, media hosts, and redirects work.
+                                    // Non-web schemes remain blocked for safety.
+                                    return scheme != "https" && scheme != "http"
                                 }
 
                                 override fun onPageStarted(
@@ -230,33 +208,6 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
 }
 
 
-/** Match exact ad-network domains and their subdomains, never broad URL substrings. */
-private val knownAdDomains = setOf(
-    "doubleclick.net",
-    "googlesyndication.com",
-    "googleadservices.com",
-    "adservice.google.com",
-    "popads.net",
-    "popcash.net",
-    "propellerads.com",
-    "adsterra.com",
-    "exoclick.com",
-    "trafficjunky.net",
-    "juicyads.com",
-    "onclickads.net",
-    "adcash.com",
-    "hilltopads.net",
-    "richads.com",
-    "admaven.com",
-    "monetag.com",
-    "mgid.com",
-    "adnxs.com",
-    "taboola.com",
-    "outbrain.com"
-)
-
-private fun isKnownAdHost(host: String): Boolean =
-    knownAdDomains.any { domain -> host == domain || host.endsWith(".$domain") }
 
 private fun hasValidatedInternet(context: Context): Boolean {
     val manager = context.getSystemService(ConnectivityManager::class.java)
