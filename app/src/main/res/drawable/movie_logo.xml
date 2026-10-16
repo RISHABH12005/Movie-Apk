@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="1254"
+    android:viewportHeight="1254">
+    <path
+        android:pathData="M 587,47 504,61 505,652 512,681 529,711 551,732 577,746 609,753 666,744 697,725 718,702 735,664 737,622 730,596 713,568 686,545 657,533 619,530 585,536 585,280 693,284 774,308 837,344 895,398 942,474 964,539 973,601 964,707 936,782 896,842 845,890 787,925 718,949 645,958 573,953 506,934 448,903 391,851 344,772 321,680 319,151 263,187 193,249 143,309 108,365 76,436 54,518 45,603 47,673 68,785 112,895 172,987 248,1067 346,1136 456,1183 563,1205 683,1207 812,1183 915,1140 1000,1083 1073,1011 1139,915 1185,808 1205,716 1210,586 1197,493 1159,381 1102,284 1015,188 910,115 807,71 696,48 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="180"
+                android:startY="80"
+                android:endX="1110"
+                android:endY="1160">
+                <item android:color="#25B9F4" android:offset="0.0" />
+                <item android:color="#078AF0" android:offset="0.48" />
+                <item android:color="#0866D9" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>
