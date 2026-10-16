@@ -34,9 +34,8 @@ import com.example.movie.ui.theme.MovieTheme
 private const val HOME_URL = "https://bollyflix.vip/"
 
 /**
- * Single-domain WebView. New windows/popups are rejected and common overlay
- * ad popups are hidden on a best-effort basis. Ads embedded directly into the
- * site's own content cannot be guaranteed to be removed by a WebView wrapper.
+ * WebView with conservative request-level ad filtering. It blocks known ad-network
+ * hosts rather than hiding page elements, so normal site controls remain clickable.
  */
 class MainActivity : ComponentActivity() {
     private var activeWebView: WebView? = null
@@ -100,21 +99,29 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
                                 allowFileAccess = false
                                 allowContentAccess = true
                                 javaScriptCanOpenWindowsAutomatically = false
-                                // Ask WebView to route new-window requests through onCreateWindow.
-                                setSupportMultipleWindows(true)
+                                // Keep target=_blank navigation in this WebView instead of creating popups.
+                                setSupportMultipleWindows(false)
                             }
 
-                            webChromeClient = object : WebChromeClient() {
-                                // Reject target=_blank, window.open, and pop-under windows.
-                                override fun onCreateWindow(
-                                    view: WebView?,
-                                    isDialog: Boolean,
-                                    isUserGesture: Boolean,
-                                    resultMsg: android.os.Message?
-                                ): Boolean = false
-                            }
+                            webChromeClient = WebChromeClient()
 
                             webViewClient = object : WebViewClient() {
+                                override fun shouldInterceptRequest(
+                                    view: WebView,
+                                    request: WebResourceRequest
+                                ): android.webkit.WebResourceResponse? {
+                                    val host = request.url.host?.lowercase() ?: return null
+                                    if (!isKnownAdHost(host)) return null
+                                    return android.webkit.WebResourceResponse(
+                                        "text/plain",
+                                        "utf-8",
+                                        204,
+                                        "No Content",
+                                        mapOf("Cache-Control" to "no-store"),
+                                        java.io.ByteArrayInputStream(ByteArray(0))
+                                    )
+                                }
+
                                 override fun shouldOverrideUrlLoading(
                                     view: WebView,
                                     request: WebResourceRequest
@@ -144,51 +151,7 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
                                 override fun onPageFinished(view: WebView, url: String?) {
                                     pageLoading = false
                                     pageError = false
-                                    // Block common popup overlays and scripts that try to open windows.
-                                    view.evaluateJavascript(
-                                        """
-                                        (function() {
-                                          if (window.__moviePopupGuard) return;
-                                          window.__moviePopupGuard = true;
-                                          try {
-                                            window.open = function() { return null; };
-                                            window.alert = function() {};
-                                            window.onbeforeunload = null;
-                                          } catch (e) {}
-                                          var hideAdOverlays = function(root) {
-                                            var nodes = (root || document).querySelectorAll
-                                              ? (root || document).querySelectorAll('[id],[class]')
-                                              : [];
-                                            for (var i = 0; i < nodes.length; i++) {
-                                              var el = nodes[i];
-                                              var label = ((el.id || '') + ' ' +
-                                                (typeof el.className === 'string' ? el.className : ''));
-                                              if (!/(popup[-_ ]?ad|ad[-_ ]?popup|popunder|interstitial[-_ ]?ad|ad[-_ ]?overlay|overlay[-_ ]?ad)/i.test(label)) continue;
-                                              var style = window.getComputedStyle(el);
-                                              if ((style.position === 'fixed' || style.position === 'absolute') &&
-                                                  parseInt(style.zIndex || '0', 10) >= 100) {
-                                                el.style.setProperty('display', 'none', 'important');
-                                                el.style.setProperty('visibility', 'hidden', 'important');
-                                              }
-                                            }
-                                          };
-                                          hideAdOverlays(document);
-                                          try {
-                                            new MutationObserver(function() { hideAdOverlays(document); })
-                                              .observe(document.documentElement, {childList:true, subtree:true, attributes:true});
-                                          } catch (e) {}
-                                          document.addEventListener('click', function(event) {
-                                            var link = event.target && event.target.closest
-                                              ? event.target.closest('a[target="_blank"]') : null;
-                                            if (link) {
-                                              event.preventDefault();
-                                              event.stopImmediatePropagation();
-                                            }
-                                          }, true);
-                                        })();
-                                        """.trimIndent(),
-                                        null
-                                    )
+                                    // No DOM overlays are hidden: broad overlay rules can cover real controls.
                                 }
 
                                 override fun onReceivedError(
@@ -266,6 +229,35 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
         }
     }
 }
+
+
+/** Match exact ad-network domains and their subdomains, never broad URL substrings. */
+private val knownAdDomains = setOf(
+    "doubleclick.net",
+    "googlesyndication.com",
+    "googleadservices.com",
+    "adservice.google.com",
+    "popads.net",
+    "popcash.net",
+    "propellerads.com",
+    "adsterra.com",
+    "exoclick.com",
+    "trafficjunky.net",
+    "juicyads.com",
+    "onclickads.net",
+    "adcash.com",
+    "hilltopads.net",
+    "richads.com",
+    "admaven.com",
+    "monetag.com",
+    "mgid.com",
+    "adnxs.com",
+    "taboola.com",
+    "outbrain.com"
+)
+
+private fun isKnownAdHost(host: String): Boolean =
+    knownAdDomains.any { domain -> host == domain || host.endsWith(".$domain") }
 
 private fun hasValidatedInternet(context: Context): Boolean {
     val manager = context.getSystemService(ConnectivityManager::class.java)
