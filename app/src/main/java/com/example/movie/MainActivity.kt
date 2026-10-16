@@ -130,12 +130,11 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
                                     val scheme = uri.scheme?.lowercase()
                                     val host = uri.host?.lowercase()
 
-                                    // The app always starts at bollyflix.vip. Allow HTTPS server
-                                    // redirects so the page does not remain blank if the site
-                                    // redirects its canonical host. Ordinary links to unrelated
-                                    // hosts remain blocked; pop-up windows are separately rejected.
+                                    // Start at bollyflix.vip, permit server redirects, and preserve
+                                    // deliberate user clicks to media/login hosts. Ad-network requests
+                                    // are filtered separately in shouldInterceptRequest.
                                     if (scheme != "https" && scheme != "http") return true
-                                    if (request.isRedirect) return false
+                                    if (request.isRedirect || request.hasGesture) return false
                                     return host != "bollyflix.vip" && host != "www.bollyflix.vip"
                                 }
 
