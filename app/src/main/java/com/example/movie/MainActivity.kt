@@ -120,10 +120,16 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
                                     request: WebResourceRequest
                                 ): Boolean {
                                     val uri = request.url
+                                    val scheme = uri.scheme?.lowercase()
                                     val host = uri.host?.lowercase()
-                                    // Keep top-level navigation on the requested domain only.
-                                    return uri.scheme != "https" ||
-                                        (host != "bollyflix.vip" && host != "www.bollyflix.vip")
+
+                                    // The app always starts at bollyflix.vip. Allow HTTPS server
+                                    // redirects so the page does not remain blank if the site
+                                    // redirects its canonical host. Ordinary links to unrelated
+                                    // hosts remain blocked; pop-up windows are separately rejected.
+                                    if (scheme != "https" && scheme != "http") return true
+                                    if (request.isRedirect) return false
+                                    return host != "bollyflix.vip" && host != "www.bollyflix.vip"
                                 }
 
                                 override fun onPageStarted(
@@ -194,6 +200,27 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
                                         pageLoading = false
                                         pageError = true
                                     }
+                                }
+
+                                override fun onReceivedHttpError(
+                                    view: WebView,
+                                    request: WebResourceRequest,
+                                    errorResponse: android.webkit.WebResourceResponse
+                                ) {
+                                    if (request.isForMainFrame && errorResponse.statusCode >= 400) {
+                                        pageLoading = false
+                                        pageError = true
+                                    }
+                                }
+
+                                override fun onReceivedSslError(
+                                    view: WebView,
+                                    handler: android.webkit.SslErrorHandler,
+                                    error: android.net.http.SslError
+                                ) {
+                                    handler.cancel()
+                                    pageLoading = false
+                                    pageError = true
                                 }
                             }
 
