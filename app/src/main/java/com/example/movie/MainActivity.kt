@@ -134,7 +134,7 @@ private fun MovieBrowser(onWebViewReady: (WebView) -> Unit) {
                                     // deliberate user clicks to media/login hosts. Ad-network requests
                                     // are filtered separately in shouldInterceptRequest.
                                     if (scheme != "https" && scheme != "http") return true
-                                    if (request.isRedirect || request.hasGesture) return false
+                                    if (request.isRedirect || request.hasGesture()) return false
                                     return host != "bollyflix.vip" && host != "www.bollyflix.vip"
                                 }
 
